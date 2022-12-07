@@ -1,0 +1,111 @@
+package day02
+
+import (
+	"aoc/utils"
+	_ "embed"
+	"fmt"
+	"strings"
+)
+
+//go:embed input.txt
+var input string
+
+type day struct {
+	input       string
+	parsedInput [][2]int
+}
+
+func (d *day) Run(part int) string {
+	switch part {
+	case 1:
+		return d.Run1()
+	case 2:
+		return d.Run2()
+	default:
+		panic("must be part 1 or 2")
+	}
+}
+
+func (d *day) parse() {
+	var nameMap = map[rune]int{
+		'X': Rock,
+		'Y': Paper,
+		'Z': Scissors,
+		'A': Rock,
+		'B': Paper,
+		'C': Scissors,
+	}
+	splitted := strings.Split(input, "\n")
+	d.parsedInput = make([][2]int, len(splitted)-1)
+	for i, pair := range splitted {
+		pairRunes := []rune(pair)
+		if len(pairRunes) != 3 {
+			continue
+		}
+		d.parsedInput[i] = [2]int{
+			nameMap[pairRunes[0]],
+			nameMap[pairRunes[2]],
+		}
+	}
+}
+
+func BuildDay02() *day {
+	d := day{
+		input: input,
+	}
+	d.parse()
+	return &d
+}
+
+func (d *day) Run1() string {
+	score := 0
+
+	memoMatchScore := utils.Memoize(d.checkMatchScore)
+
+	for _, pair := range d.parsedInput {
+		score += memoMatchScore(pair)
+	}
+	return fmt.Sprint(score)
+}
+
+func (d *day) Run2() string {
+	score := 0
+
+	memoMatchScore := utils.Memoize(d.checkMatchScore)
+	memoStrat := utils.Memoize(d.applyStrat)
+
+	for _, pair := range d.parsedInput {
+		score += memoMatchScore([2]int{pair[0], memoStrat(pair)})
+	}
+	return fmt.Sprint(score)
+}
+
+func (d *day) applyStrat(pair [2]int) (myChoice int) {
+	switch pair[1] {
+	case 1: // lose
+		myChoice = -((-pair[0]+4)%3 + 1) + 4
+	case 2: // draw
+		myChoice = pair[0]
+	case 3: // win
+		myChoice = (pair[0] % 3) + 1
+	default:
+		panic("invalid choice")
+	}
+	return
+}
+
+func (d *day) checkMatchScore(pair [2]int) int {
+	score := pair[1]
+	if pair[1] == pair[0] {
+		score += 3
+	} else if pair[1] == (pair[0]%3)+1 {
+		score += 6
+	}
+	return score
+}
+
+const (
+	Rock int = iota + 1
+	Paper
+	Scissors
+)
