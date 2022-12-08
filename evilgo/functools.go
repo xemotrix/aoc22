@@ -30,6 +30,10 @@ func Map[T, R any](function func(T) R, slice []T) []R {
 	return result
 }
 
+func Apply[T, R any](function func(T) R, val T) R {
+	return function(val)
+}
+
 // Reduce applies a function n times to convert an slice of T into a single
 // value of type T
 func Reduce[T any](function func(T, T) T, slice []T) T {
@@ -49,6 +53,18 @@ func Flip[T, K, R any](function func(T, K) R) func(K, T) R {
 		return function(b, a)
 	}
 
+}
+
+func Scan[T any](function func(T, T) T, slice []T) []T {
+	if len(slice) <= 1 {
+		return slice
+	}
+	res := make([]T, len(slice))
+	res[0] = slice[0]
+	for i, ele := range slice[1:] {
+		res[i+1] = function(res[i], ele)
+	}
+	return res
 }
 
 // Curry takes a dyadic function and its first argument and returns a monadic
