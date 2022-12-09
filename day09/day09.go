@@ -36,11 +36,7 @@ type instruction struct {
 }
 
 func (d *day) parse() {
-
 	instructionFromStr := func(s string) instruction {
-		if len(s) < 3 {
-			panic("invalid instruction string")
-		}
 		return instruction{
 			dir: rune(s[0]),
 			num: Expect(strconv.Atoi)(s[2:]),
@@ -53,56 +49,79 @@ func (d *day) parse() {
 type loc struct {
 	x, y int
 }
-type ropeLink struct {
-	H loc
-	T loc
+
+type knot struct {
+	loc  loc
+	next *knot
 }
 
-func (r *ropeLink) checkValid() bool {
-	distanceSq := math.Pow(float64(r.H.x-r.T.x), 2) + math.Pow(float64(r.H.y-r.T.y), 2)
-	return distanceSq <= 2
+func (r *knot) checkNext() {
+	if r.next == nil {
+		return
+	}
+
+	distX := r.loc.x - r.next.loc.x
+	distY := r.loc.y - r.next.loc.y
+
+	distanceSq := math.Pow(float64(distX), 2) + math.Pow(float64(distY), 2)
+	if distanceSq <= 2 {
+		return
+	}
+
+	r.next.loc = r.loc
+
+	if distX >= 2 { // we are moving right
+		r.next.loc.x--
+	} else if distX <= -2 { // we are moving left
+		r.next.loc.x++
+	}
+
+	if distY >= 2 { // we are moving up
+		r.next.loc.y--
+	} else if distY <= -2 { // we are moving down
+		r.next.loc.y++
+	}
+
+	r.next.checkNext()
 }
 
-func (r *ropeLink) move(ins instruction) []loc {
-	tPositions := make([]loc, ins.num)
+func (k *knot) step(dir rune) {
+	switch dir {
+	case 'R':
+		k.loc.x++
+	case 'L':
+		k.loc.x--
+	case 'U':
+		k.loc.y++
+	case 'D':
+		k.loc.y--
+	}
+	k.checkNext()
+	return
+}
+
+func (k *knot) getTailLoc() loc {
+	if k.next != nil {
+		return k.next.getTailLoc()
+	}
+	return k.loc
+}
+
+func (k *knot) move(ins instruction) (tPositions []loc) {
 	for i := 0; i < ins.num; i++ {
-		switch ins.dir {
-		case 'R':
-			r.H.x++
-		case 'L':
-			r.H.x--
-		case 'U':
-			r.H.y++
-		case 'D':
-			r.H.y--
-		}
-		if valid := r.checkValid(); !valid {
-			switch ins.dir {
-			case 'R':
-				r.T = loc{
-					x: r.H.x - 1,
-					y: r.H.y,
-				}
-			case 'L':
-				r.T = loc{
-					x: r.H.x + 1,
-					y: r.H.y,
-				}
-			case 'U':
-				r.T = loc{
-					x: r.H.x,
-					y: r.H.y - 1,
-				}
-			case 'D':
-				r.T = loc{
-					x: r.H.x,
-					y: r.H.y + 1,
-				}
-			}
-		}
-		tPositions[i] = r.T
+		k.step(ins.dir)
+		tPositions = append(tPositions, k.getTailLoc())
 	}
 	return tPositions
+}
+
+func buildRope(size int) *knot {
+	if size == 0 {
+		return nil
+	}
+	return &knot{
+		next: buildRope(size - 1),
+	}
 }
 
 type set[T comparable] map[T]*any
@@ -113,24 +132,19 @@ func (s set[T]) add(elems ...T) {
 	}
 }
 
-func (d *day) Run1() string {
-	r := ropeLink{}
+func (d *day) runSimulation(ropeLength int) int {
+	head := buildRope(ropeLength)
 	tailPositions := set[loc]{}
-	for i, ins := range d.parsedInput {
-		tailPositions.add(r.move(ins)...)
-		fmt.Printf("Iter %d\n", i)
-		fmt.Printf(" - H: xy(%d, %d)\n", r.H.x, r.H.y)
-		fmt.Printf(" - T: xy(%d, %d)\n", r.T.x, r.T.y)
+	for _, ins := range d.parsedInput {
+		tailPositions.add(head.move(ins)...)
 	}
-	fmt.Println(len(tailPositions))
-	return ""
+	return len(tailPositions)
 }
 
-type ropeKnot struct {
-	loc  loc
-	next *ropeKnot
+func (d *day) Run1() string {
+	return fmt.Sprint(d.runSimulation(2))
 }
 
 func (d *day) Run2() string {
-	return ""
+	return fmt.Sprint(d.runSimulation(10))
 }
