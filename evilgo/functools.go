@@ -1,4 +1,4 @@
-package functools
+package evilgo
 
 import (
 	"fmt"
