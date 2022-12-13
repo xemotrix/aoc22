@@ -8,17 +8,19 @@ type Dequeue[T any] interface {
 	ApplyToAll(fun func(T) T)
 	Empty() bool
 	Len() int
+	SetCursor()
 }
 
-type queueNode[T any] struct {
+type DequeueNode[T any] struct {
 	item T
-	next *queueNode[T]
-	prev *queueNode[T]
+	next *DequeueNode[T]
+	prev *DequeueNode[T]
 }
 
 type dequeue[T any] struct {
-	head *queueNode[T]
-	tail *queueNode[T]
+	head   *DequeueNode[T]
+	tail   *DequeueNode[T]
+	cursor *DequeueNode[T]
 }
 
 func BuildDequeue[T any](items ...T) Dequeue[T] {
@@ -26,7 +28,7 @@ func BuildDequeue[T any](items ...T) Dequeue[T] {
 		return &dequeue[T]{}
 	}
 
-	node := queueNode[T]{item: items[0]}
+	node := DequeueNode[T]{item: items[0]}
 
 	dq := dequeue[T]{
 		head: &node,
@@ -40,12 +42,12 @@ func BuildDequeue[T any](items ...T) Dequeue[T] {
 
 func (q *dequeue[T]) pushHead(item T) {
 	if q.Len() == 0 {
-		node := queueNode[T]{item: item}
+		node := DequeueNode[T]{item: item}
 		q.head = &node
 		q.tail = &node
 		return
 	}
-	node := &queueNode[T]{
+	node := &DequeueNode[T]{
 		item: item,
 		next: q.head,
 	}
@@ -59,14 +61,28 @@ func (q *dequeue[T]) PushHead(items ...T) {
 	}
 }
 
+func (q *dequeue[T]) SetCursor() {
+	q.cursor = q.head
+}
+
+func (q *dequeue[T]) Next() (T, bool) {
+	if q.cursor == nil {
+		var a T
+		return a, false
+	}
+	res := q.cursor.item
+	q.cursor = q.cursor.next
+	return res, true
+}
+
 func (q *dequeue[T]) pushTail(item T) {
 	if q.Len() == 0 {
-		node := queueNode[T]{item: item}
+		node := DequeueNode[T]{item: item}
 		q.head = &node
 		q.tail = &node
 		return
 	}
-	node := &queueNode[T]{
+	node := &DequeueNode[T]{
 		item: item,
 		prev: q.tail,
 	}
