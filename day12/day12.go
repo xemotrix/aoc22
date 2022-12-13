@@ -13,10 +13,8 @@ import (
 var input string
 
 type day struct {
-	input string
-	graph Graph[int]
-	// startUUID   string
-	// endUUID     string
+	input       string
+	graph       Graph[int]
 	parsedInput [][]string
 }
 
