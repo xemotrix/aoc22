@@ -115,3 +115,12 @@ func Max[T constraints.Ordered](a, b T) T {
 	}
 	return b
 }
+
+// Min takes two arguments of a type T that satisfies the type constraint
+// Ordered and returns the greater one
+func Min[T constraints.Ordered](a, b T) T {
+	if a < b {
+		return a
+	}
+	return b
+}
