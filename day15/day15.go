@@ -97,30 +97,44 @@ func (yi intervals) Swap(i, j int) {
 }
 
 func (d *day) buildIntervals(row int) intervals {
-	inter := []interval{}
+	rawIntervals := intervals{}
 	for _, s := range d.sensors {
 		distY := int(math.Abs(float64(s.loc.y - row)))
 		rad := s.dist - distY
 		if rad < 0 {
 			continue
 		}
-		newInter := interval{s.loc.x - rad, s.loc.x + rad}
-		inter = append(inter, newInter)
+		newInter := interval{min: s.loc.x - rad, max: s.loc.x + rad}
+		rawIntervals = append(rawIntervals, newInter)
 	}
 
-	sort.Sort(intervals(inter))
+	sort.Sort(rawIntervals)
 
 	cleanIntervals := []interval{}
-	buildInter := inter[0]
-	for i := 1; i < len(inter); i++ {
-		if inter[i].min <= buildInter.max {
-			buildInter.max = Max(inter[i].max, buildInter.max)
+
+	buildInter := rawIntervals[0]
+	for i := 1; i < len(rawIntervals); i++ {
+		if rawIntervals[i].min <= buildInter.max {
+			buildInter.max = Max(rawIntervals[i].max, buildInter.max)
 			continue
 		}
 		cleanIntervals = append(cleanIntervals, buildInter)
-		buildInter = inter[i]
+		buildInter = rawIntervals[i]
 	}
 	return append(cleanIntervals, buildInter)
+}
+
+func (d *day) Run1() string {
+	start := time.Now()
+	defer func() {
+		fmt.Println("Part1:", time.Since(start))
+	}()
+
+	row := 2000000
+	cleanIntervals := d.buildIntervals(row)
+	lens := Map(func(i interval) int { return i.Len() }, cleanIntervals)
+	res := Reduce(func(a, b int) int { return a + b }, lens)
+	return fmt.Sprint(res)
 }
 
 func (i intervals) cap(min, max int) {
@@ -132,18 +146,6 @@ func (i intervals) cap(min, max int) {
 	}
 }
 
-func (d *day) Run1() string {
-	start := time.Now()
-	defer func() {
-		fmt.Println("Part1:", time.Since(start))
-	}()
-	row := 2000000
-	cleanIntervals := d.buildIntervals(row)
-	lens := Map(func(i interval) int { return i.Len() }, cleanIntervals)
-	res := Reduce(func(a, b int) int { return a + b }, lens)
-	return fmt.Sprint(res)
-}
-
 func (d *day) Run2() string {
 	start := time.Now()
 	defer func() {
@@ -153,7 +155,9 @@ func (d *day) Run2() string {
 	min, max := 0, 4000000
 	checkRow := func(ch chan int, row int) {
 		if cleanIntervals := d.buildIntervals(row); len(cleanIntervals) > 1 {
-			cleanIntervals.cap(min, max)
+			// comment next line to exploit that the hole is not going to
+			// be on the edge:
+			// cleanIntervals.cap(min, max)
 			ch <- 4000000*(cleanIntervals[1].min-1) + row
 		}
 	}
