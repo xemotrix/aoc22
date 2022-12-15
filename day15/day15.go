@@ -9,6 +9,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"time"
 )
 
 //go:embed input.txt
@@ -20,6 +21,10 @@ type day struct {
 }
 
 func BuildDay15() *day {
+	start := time.Now()
+	defer func() {
+		fmt.Println("Parse:", time.Since(start))
+	}()
 	d := day{
 		input: input,
 	}
@@ -68,8 +73,6 @@ func (d *day) parse() {
 	d.sensors = Map(toSensor, matInt)
 }
 
-type intervals []interval
-
 type interval struct {
 	min int
 	max int
@@ -78,6 +81,8 @@ type interval struct {
 func (yi *interval) Len() int {
 	return yi.max - yi.min
 }
+
+type intervals []interval
 
 func (yi intervals) Len() int {
 	return len(yi)
@@ -102,7 +107,9 @@ func (d *day) buildIntervals(row int) intervals {
 		newInter := interval{s.loc.x - rad, s.loc.x + rad}
 		inter = append(inter, newInter)
 	}
+
 	sort.Sort(intervals(inter))
+
 	cleanIntervals := []interval{}
 	buildInter := inter[0]
 	for i := 1; i < len(inter); i++ {
@@ -113,8 +120,7 @@ func (d *day) buildIntervals(row int) intervals {
 		cleanIntervals = append(cleanIntervals, buildInter)
 		buildInter = inter[i]
 	}
-	cleanIntervals = append(cleanIntervals, buildInter)
-	return cleanIntervals
+	return append(cleanIntervals, buildInter)
 }
 
 func (i intervals) cap(min, max int) {
@@ -127,6 +133,10 @@ func (i intervals) cap(min, max int) {
 }
 
 func (d *day) Run1() string {
+	start := time.Now()
+	defer func() {
+		fmt.Println("Part1:", time.Since(start))
+	}()
 	row := 2000000
 	cleanIntervals := d.buildIntervals(row)
 	lens := Map(func(i interval) int { return i.Len() }, cleanIntervals)
@@ -145,19 +155,23 @@ func printIntervals(num int, is intervals, min, max int) {
 }
 
 func (d *day) Run2() string {
+	start := time.Now()
+	defer func() {
+		fmt.Println("Part2:", time.Since(start))
+	}()
+
 	min, max := 0, 4000000
-	for row := min; row <= max; row++ {
-		cleanIntervals := d.buildIntervals(row)
-		cleanIntervals.cap(min, max)
-
-		lens := Map(func(i interval) int { return i.Len() + 1 }, cleanIntervals)
-		holes := max + 1 - Reduce(func(a, b int) int { return a + b }, lens)
-
-		if holes > 0 {
-			return fmt.Sprint(4000000*(cleanIntervals[1].min-1) + row)
+	checkRow := func(ch chan int, row int) {
+		if cleanIntervals := d.buildIntervals(row); len(cleanIntervals) > 1 {
+			cleanIntervals.cap(min, max)
+			ch <- 4000000*(cleanIntervals[1].min-1) + row
 		}
-
 	}
 
-	return ""
+	ch := make(chan int)
+	for row := min; row <= max; row++ {
+		go checkRow(ch, row)
+	}
+
+	return fmt.Sprint(<-ch)
 }
