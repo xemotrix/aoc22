@@ -144,16 +144,6 @@ func (d *day) Run1() string {
 	return fmt.Sprint(res)
 }
 
-func printIntervals(num int, is intervals, min, max int) {
-	str := []rune(strings.Repeat("·", max-min+1))
-	for _, inter := range is {
-		for j := inter.min; j <= inter.max; j++ {
-			str[j] = '#'
-		}
-	}
-	fmt.Println(num, "\t", string(str))
-}
-
 func (d *day) Run2() string {
 	start := time.Now()
 	defer func() {
